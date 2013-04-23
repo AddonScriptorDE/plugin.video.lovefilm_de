@@ -1,0 +1,13 @@
+1.0.0
+- Initial release
+1.0.1
+- Fixed site changes (50 Entries per page)
+- Added extra info (Year, Rating, Description)
+- Added option to show Cover as Fanart
+- Added option to choose Player
+1.0.2
+- Fixed episode listing
+1.0.3
+- Some small fixes
+1.0.4
+- Added support for Mac OSX
