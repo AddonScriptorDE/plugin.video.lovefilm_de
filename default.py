@@ -38,6 +38,7 @@ def listMovies(url):
     addDir(translation(30005), baseUrl+"/c/p1/?facet-2=collection_id|2171&v=l&r=50", 'listVideos', "")
     addDir(translation(30006), baseUrl+"/c/video-on-demand/filme/", "listGenres", "")
     addDir(translation(30007), baseUrl+"/c/video-on-demand/filme-sammlungen", "listCollections", "")
+    addDir(translation(30011), "https://www.lovefilm.de/account/watchlist/film/", 'openBrowser', "")
     addDir(translation(30008), "movies", "search", "")
     xbmcplugin.endOfDirectory(pluginhandle)
 
@@ -47,6 +48,7 @@ def listTvShows(url):
     addDir(translation(30010), baseUrl+"/c/p1/?facet-2=collection_id|2730&v=l&r=50", 'listVideos', "")
     addDir(translation(30006), baseUrl+"/c/video-on-demand/fernsehfilme/", "listGenres", "")
     addDir(translation(30007), baseUrl+"/c/video-on-demand/tv-sammlungen", "listCollections", "")
+    addDir(translation(30011), "https://www.lovefilm.de/account/watchlist/tv/", 'openBrowser', "")
     addDir(translation(30008), "tvshows", "search", "")
     xbmcplugin.endOfDirectory(pluginhandle)
 
@@ -59,17 +61,23 @@ def listGenres(url):
     urlNext = ""
     for url, title, nr in match:
         title = cleanTitle(title)
-        addDir(title + nr, url+"?v=l&r=50", 'listVideos', "")
+        addDir(title + nr, url+"&v=l&r=50", 'listVideos', "")
     xbmcplugin.endOfDirectory(pluginhandle)
 
 
 def listCollections(url):
     content = getUrl(url)
-    content = content[content.find('<div class="collection_items"'):]
+    content = content[content.find('<div class="collection_items"')+1:]
     content = content[:content.find('<div class="page-footer bermuda-footer">')]
-    match = re.compile('<a href="(.+?)">.+?<img src="(.+?)" width=".+?" height=".+?" />.+?<h3>(.+?)</h3>', re.DOTALL).findall(content)
-    urlNext = ""
-    for url, thumb, title in match:
+    spl = content.split('<div class="collection_item')
+    for i in range(1, len(spl), 1):
+        entry = spl[i]
+        match = re.compile('href="(.+?)"', re.DOTALL).findall(entry)
+        url = match[0]
+        match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
+        thumb = match[0]
+        match = re.compile('<h3>(.+?)</h3>', re.DOTALL).findall(entry)
+        title = match[0]
         title = cleanTitle(title)
         addDir(title, url+"&v=l&r=50", 'listVideos', thumb)
     xbmcplugin.endOfDirectory(pluginhandle)
@@ -169,20 +177,26 @@ def playVideoPlayer(url):
 
 
 def playVideoBrowser(url):
-    xbmc.Player().stop()
     content = getUrl(url)
     match = re.compile("'release:(.+?):", re.DOTALL).findall(content)
     fullUrl = "http://www.lovefilm.de/apps/catalog/module/player/player_popout.mhtml?release_id="+match[0]
+    openBrowser(fullUrl)
+
+
+def openBrowser(url):
+    xbmc.Player().stop()
     if osx:
         if osxPlayer == "0":
-            player = "Safari"
+            fullUrl = 'open -a "/Applications/Safari.app/" '+url
         elif osxPlayer == "1":
-            player = "Firefox"
+            fullUrl = 'open -a "/Applications/Firefox.app/" '+url
         elif osxPlayer == "2":
-            player = "Google Chrome"
-        subprocess.Popen('open -a "/Applications/'+player+'.app/" '+fullUrl, shell=True)
+            fullUrl = '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --kiosk '+url
+        elif osxPlayer == "3":
+            fullUrl = 'open -a "/Applications/Kylo.app/" '+url
+        subprocess.Popen(fullUrl, shell=True)
     else:
-        xbmc.executebuiltin('RunPlugin(plugin://plugin.program.webbrowser/?url='+urllib.quote_plus(fullUrl)+'&mode=showSite)')
+        xbmc.executebuiltin('RunPlugin(plugin://plugin.program.webbrowser/?url='+urllib.quote_plus(url)+'&mode=showSite&showScrollbar=no)')
 
 
 def cleanTitle(title):
@@ -244,6 +258,8 @@ elif mode == 'playVideoPlayer':
     playVideoPlayer(url)
 elif mode == 'playVideoBrowser':
     playVideoBrowser(url)
+elif mode == 'openBrowser':
+    openBrowser(url)
 elif mode == 'search':
     search(url)
 else:
